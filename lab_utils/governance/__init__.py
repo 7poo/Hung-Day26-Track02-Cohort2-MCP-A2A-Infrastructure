@@ -1,9 +1,5 @@
 """Data governance cho kết nối MCP và A2A."""
 
-from lab_utils.governance.adk_callbacks import (
-    governance_before_agent_callback,
-    governance_before_tool_callback,
-)
 from lab_utils.governance.audit import AuditLogger
 from lab_utils.governance.guard import GovernanceGuard, get_guard
 from lab_utils.governance.models import (
@@ -13,6 +9,15 @@ from lab_utils.governance.models import (
     GovernanceVerdict,
 )
 from lab_utils.governance.rate_limit import RateLimiter
+
+try:
+    from lab_utils.governance.adk_callbacks import (
+        governance_before_agent_callback,
+        governance_before_tool_callback,
+    )
+except ModuleNotFoundError:
+    governance_before_agent_callback = None
+    governance_before_tool_callback = None
 
 __all__ = [
     "AuditEntry",

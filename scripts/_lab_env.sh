@@ -24,6 +24,11 @@ resolve_lab_python() {
   local root="${1:-.}"
   local c candidates=()
 
+  # Ưu tiên venv local nếu lab đang được chạy từ WSL / Linux
+  if [[ -x "$root/.lab_venv/bin/python" ]]; then
+    candidates+=("$root/.lab_venv/bin/python")
+  fi
+
   # Ưu tiên conda (pii-env) — lab không dùng .venv
   if [[ -n "${CONDA_PREFIX:-}" && -x "${CONDA_PREFIX}/bin/python" ]]; then
     candidates+=("${CONDA_PREFIX}/bin/python")

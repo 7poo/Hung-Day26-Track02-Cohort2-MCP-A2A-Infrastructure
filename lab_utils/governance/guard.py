@@ -81,6 +81,18 @@ class GovernanceGuard:
         if tool_name == "search_documents":
             query = str(arguments.get("query", ""))
             max_len = int(tool_policy.get("max_query_length", 500))
+            blocked_keywords = [str(keyword).lower() for keyword in tool_policy.get("blocked_keywords", [])]
+            query_lower = query.lower()
+            if any(keyword and keyword in query_lower for keyword in blocked_keywords):
+                decision = GovernanceDecision(
+                    verdict=GovernanceVerdict.DENY,
+                    reason="Truy vấn chứa từ khóa bị cấm bởi governance",
+                    actor_id=actor_id,
+                    connection_type=ConnectionType.MCP,
+                    resource=f"mcp:research-tools/{tool_name}",
+                )
+                self._log(decision, "mcp_tool_call", query, trace_id)
+                return decision
             if len(query) > max_len:
                 decision = GovernanceDecision(
                     verdict=GovernanceVerdict.DENY,

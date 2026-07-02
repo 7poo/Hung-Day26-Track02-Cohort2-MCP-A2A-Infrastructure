@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -98,6 +99,17 @@ async def list_tools() -> list[Tool]:
                 "required": ["text"],
             },
         ),
+        Tool(
+            name="count_words",
+            description="Đếm số từ trong chuỗi đầu vào.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "Văn bản cần đếm từ"},
+                },
+                "required": ["text"],
+            },
+        ),
     ]
     return [tool for tool in all_tools if tool.name in allowed]
 
@@ -112,7 +124,10 @@ def _search_documents(query: str) -> list[dict[str, str]]:
 
 
 def _sql_query(sql: str) -> list[dict[str, Any]]:
-    if "AGENT_METRICS" not in sql.upper():
+    sql_upper = sql.strip().upper()
+    if not sql_upper.startswith("SELECT"):
+        raise ValueError("Chỉ cho phép SELECT (read-only)")
+    if "AGENT_METRICS" not in sql_upper:
         return []
     return SQL_ROWS
 
@@ -120,6 +135,11 @@ def _sql_query(sql: str) -> list[dict[str, Any]]:
 def _summarize_text(text: str, max_bullets: int = 3) -> list[str]:
     sentences = [s.strip() for s in text.replace("\n", " ").split(".") if s.strip()]
     return [f"- {sentence}" for sentence in sentences[:max_bullets]]
+
+
+def _count_words(text: str) -> int:
+    words = re.findall(r"\b\w+\b", text, flags=re.UNICODE)
+    return len(words)
 
 
 @app.call_tool()
@@ -163,6 +183,9 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             int(arguments.get("max_bullets", 3)),
         )
         return [TextContent(type="text", text="\n".join(bullets))]
+    if name == "count_words":
+        count = _count_words(arguments["text"])
+        return [TextContent(type="text", text=json.dumps({"count": count}, ensure_ascii=False))]
     raise ValueError(f"Tool không xác định: {name}")
 
 
